@@ -3,14 +3,17 @@ module.exports = function(grunt) {
     grunt.initConfig({
         appName: 'mine',
         dirs: {
-            dist: {
-                vendor: 'build/dist/scripts/vendor'
-            }
+            web: 'src/main/webapp',
+            vendorjs: '<%=dirs.web%>/scripts/vendor',
+            appjs: '<%=dirs.web%>/scripts/app'
+        },
+        files: {
+            typescript: 'src/main/ts/**/*.ts'
         },
         typescript: {
             compile: {
                 src: '<%=concat.compile.dest%>',
-                dest: 'build/js/<%=appName%>.js',
+                dest: '<%=dirs.appjs%>/<%=appName%>.js',
                 options: {
                     sourceMap: true,
                     declaration: true
@@ -20,7 +23,7 @@ module.exports = function(grunt) {
                 src: [
                     'src/test/ts/**/*.ts',
                     'typings/**/*.d.ts',
-                    'build/js/<%=appName%>.d.ts'
+                    '<%=dirs.appjs%>/<%=appName%>.d.ts'
                 ],
                 dest: 'build/js/<%=appName%>-test.js'
             }
@@ -28,7 +31,7 @@ module.exports = function(grunt) {
         uglify: {
             minify: {
                 src: '<%=typescript.compile.dest%>',
-                dest: 'build/js/<%=appName%>.min.js',
+                dest: '<%=dirs.appjs%>/<%=appName%>.min.js',
                 options: {
                     sourceMapIn: '<%= typescript.compile.dest %>.map',
                     sourceMapRoot: '',
@@ -50,23 +53,60 @@ module.exports = function(grunt) {
         },
         concat: {
             compile: {
-                src: 'src/main/ts/**/*.ts',
-                dest: 'build/js/<%=appName%>.ts'
+                src: '<%=files.typescript%>',
+                dest: '<%=dirs.appjs%>/<%=appName%>.ts'
             },
             server: {
-                src: 'build/dist/index.html',
+                src: '<%=dirs.web%>/index.html',
                 dest: '<%=concat.server.src%>',
                 options: {
                     footer: '<script src="http://localhost:35729/livereload.js"></script>'
                 }
             }
         },
+        copy: {
+            init: {
+                files: [
+                    {expand: true, cwd: 'bower_components/angular/', src: '*', dest: '<%=dirs.vendorjs%>/angular/'},
+                    {expand: true, cwd: 'bower_components/jquery/dist', src: '*', dest: '<%=dirs.vendorjs%>/jquery/'},
+                    {expand: true, cwd: 'bower_components/underscore', src: '*', dest: '<%=dirs.vendorjs%>/underscore/'},
+                    {expand: true, cwd: 'bower_components/bootstrap/dist', src: '**', dest: '<%=dirs.vendorjs%>/bootstrap/'},
+                ]
+            },
+            build: {
+                files: [
+                    {expand: true, cwd: '<%=dirs.web%>/', src: '**', dest: 'build/dist/<%=appName%>/'}
+                ]
+            }
+        },
+        clean: [
+            'build/',
+            '<%=dirs.appjs%>/'
+        ],
+        connect: {
+            server: {
+                options: {
+                    port: 8543,
+                    hostname: 'localhost',
+                    base: '<%=dirs.web%>',
+                    open: 'http://<%=connect.server.options.hostname%>:<%=connect.server.options.port%>/'
+                }
+            }
+        },
+        watch: {
+            server: {
+                files: ['<%=files.typescript%>'],
+                tasks: ['minify', 'concat:server'],
+                options: {
+                    event: ['added', 'deleted', 'changed'],
+                    livereload: true
+                }
+            }
+        },
         replace: {
-            package: {
-                expand: true,
-                cwd: 'build/dist/',
-                src: '**/*.html',
-                dest: 'build/dist/',
+            init: {
+                src: '<%=dirs.web%>/index.html',
+                dest: '<%=replace.init.src%>',
                 options: {
                     patterns: [
                         {
@@ -75,45 +115,6 @@ module.exports = function(grunt) {
                             }
                         }
                     ]
-                }
-            }
-        },
-        copy: {
-            package: {
-                files: [
-                    // index.html and view html
-                    {expand: true, cwd: 'src/main/html/', src: '**/*.html', dest: 'build/dist/'},
-                    // javascript
-                    {expand: true, cwd: 'build/js/', src: '*', dest: 'build/dist/scripts/app/'},
-                    {expand: true, cwd: 'bower_components/angular/', src: '*', dest: '<%=dirs.dist.vendor%>/angular/'},
-                    {expand: true, cwd: 'bower_components/jquery/dist', src: '*', dest: '<%=dirs.dist.vendor%>/jquery/'},
-                    {expand: true, cwd: 'bower_components/underscore', src: '*', dest: '<%=dirs.dist.vendor%>/underscore/'},
-                    {expand: true, cwd: 'bower_components/bootstrap/dist', src: '**', dest: '<%=dirs.dist.vendor%>/bootstrap/'},
-                    // app.css
-                    {src: 'src/main/css/app.css', dest: 'build/dist/styles/app/<%=appName%>.css'},
-                    // image
-                    {expand: true, cwd: 'src/main/image/', src: '**', dest: 'build/dist/images/'}
-                ]
-            }
-        },
-        clean: ['build'],
-        connect: {
-            server: {
-                options: {
-                    port: 8543,
-                    hostname: 'localhost',
-                    base: 'build/dist/',
-                    open: 'http://<%=connect.server.options.hostname%>:<%=connect.server.options.port%>/'
-                }
-            }
-        },
-        watch: {
-            server: {
-                files: ['src/main/**/*'],
-                tasks: ['build', 'concat:server'],
-                options: {
-                    event: ['added', 'deleted', 'changed'],
-                    livereload: true
                 }
             }
         }
@@ -131,6 +132,11 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-replace');
 
     // tasks
+    grunt.registerTask('init', [
+        'copy:init',
+        'replace:init'
+    ]);
+    
     grunt.registerTask('compile', [
         'concat:compile',
         'typescript:compile',
@@ -148,13 +154,14 @@ module.exports = function(grunt) {
     ]);
     
     grunt.registerTask('build', [
-        'minify',
-        'copy:package',
-        'replace:package'
+        'init',
+        'test',
+        'copy:build'
     ]);
     
     grunt.registerTask('server', [
-        'build',
+        'init',
+        'minify',
         'concat:server',
         'connect:server',
         'watch:server'
