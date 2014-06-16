@@ -110,9 +110,9 @@ module.exports = function(grunt) {
         watch: {
             server: {
                 files: ['src/main/**/*'],
-                tasks: ['build'],
+                tasks: ['build', 'concat:server'],
                 options: {
-                    event: ['added', 'deleted'],
+                    event: ['added', 'deleted', 'changed'],
                     livereload: true
                 }
             }
@@ -155,6 +155,7 @@ module.exports = function(grunt) {
     
     grunt.registerTask('server', [
         'build',
+        'concat:server',
         'connect:server',
         'watch:server'
     ]);
