@@ -4,3 +4,5 @@
 /_SpecRunner.html
 /build
 /.grunt
+/src/main/webapp/scripts/vendor
+/src/main/webapp/scripts/app
