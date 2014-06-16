@@ -1,7 +1,7 @@
 module.exports = function(grunt) {
     // config
     grunt.initConfig({
-        appName: 'ttsort',
+        appName: 'mine',
         dirs: {
             dist: {
                 vendor: 'build/dist/scripts/vendor'
