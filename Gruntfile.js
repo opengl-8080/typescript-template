@@ -8,7 +8,12 @@ module.exports = function(grunt) {
             appjs: '<%=dirs.web%>/scripts/app'
         },
         files: {
-            typescript: 'src/main/ts/**/*.ts'
+            typescript: 'src/main/ts/**/*.ts',
+            index: '<%=dirs.web%>/index.html',
+            devIndex: {
+                path: '<%=dirs.web%>/<%=files.devIndex.name%>',
+                name: 'index-dev.html'
+            }
         },
         typescript: {
             compile: {
@@ -57,8 +62,8 @@ module.exports = function(grunt) {
                 dest: '<%=dirs.appjs%>/<%=appName%>.ts'
             },
             server: {
-                src: '<%=dirs.web%>/index.html',
-                dest: '<%=concat.server.src%>',
+                src: '<%=files.index%>',
+                dest: '<%=files.devIndex.path%>',
                 options: {
                     footer: '<script src="http://localhost:35729/livereload.js"></script>'
                 }
@@ -81,7 +86,8 @@ module.exports = function(grunt) {
         },
         clean: [
             'build/',
-            '<%=dirs.appjs%>/'
+            '<%=dirs.appjs%>/',
+            '<%=files.devIndex.path%>/'
         ],
         connect: {
             server: {
@@ -89,13 +95,13 @@ module.exports = function(grunt) {
                     port: 8543,
                     hostname: 'localhost',
                     base: '<%=dirs.web%>',
-                    open: 'http://<%=connect.server.options.hostname%>:<%=connect.server.options.port%>/'
+                    open: 'http://<%=connect.server.options.hostname%>:<%=connect.server.options.port%>/<%=files.devIndex.name%>'
                 }
             }
         },
         watch: {
             server: {
-                files: ['<%=files.typescript%>'],
+                files: ['<%=files.typescript%>', '<%=files.index%>'],
                 tasks: ['minify', 'concat:server'],
                 options: {
                     event: ['added', 'deleted', 'changed'],
@@ -105,7 +111,7 @@ module.exports = function(grunt) {
         },
         replace: {
             init: {
-                src: '<%=dirs.web%>/index.html',
+                src: '<%=files.index%>',
                 dest: '<%=replace.init.src%>',
                 options: {
                     patterns: [
@@ -160,7 +166,6 @@ module.exports = function(grunt) {
     ]);
     
     grunt.registerTask('server', [
-        'init',
         'minify',
         'concat:server',
         'connect:server',

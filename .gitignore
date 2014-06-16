@@ -6,3 +6,4 @@
 /.grunt
 /src/main/webapp/scripts/vendor
 /src/main/webapp/scripts/app
+/src/main/webapp/index-dev.html
