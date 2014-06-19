@@ -5,7 +5,8 @@ module.exports = function(grunt) {
         dirs: {
             web: 'src/main/webapp',
             vendorjs: '<%=dirs.web%>/scripts/vendor',
-            appjs: '<%=dirs.web%>/scripts/app'
+            appjs: '<%=dirs.web%>/scripts/app',
+            vendorDts: 'src/main/ts/vendor'
         },
         files: {
             typescript: 'src/main/ts/**/*.ts',
@@ -15,9 +16,28 @@ module.exports = function(grunt) {
                 name: 'index-dev.html'
             }
         },
+        concat: {
+            compile: {
+                src: '<%=files.typescript%>',
+                dest: '<%=dirs.appjs%>/<%=appName%>.ts',
+                filter: function(filepath) {
+                    return !filepath.match(/.*\.d\.ts$/);
+                }
+            },
+            server: {
+                src: '<%=files.index%>',
+                dest: '<%=files.devIndex.path%>',
+                options: {
+                    footer: '<script src="http://localhost:35729/livereload.js"></script>'
+                }
+            }
+        },
         typescript: {
             compile: {
-                src: '<%=concat.compile.dest%>',
+                src: [
+                    '<%=concat.compile.dest%>',
+                    'typings/**/*.d.ts'
+                ],
                 dest: '<%=dirs.appjs%>/<%=appName%>.js',
                 options: {
                     sourceMap: true,
@@ -56,26 +76,19 @@ module.exports = function(grunt) {
                 }
             }
         },
-        concat: {
-            compile: {
-                src: '<%=files.typescript%>',
-                dest: '<%=dirs.appjs%>/<%=appName%>.ts'
-            },
-            server: {
-                src: '<%=files.index%>',
-                dest: '<%=files.devIndex.path%>',
-                options: {
-                    footer: '<script src="http://localhost:35729/livereload.js"></script>'
-                }
-            }
-        },
         copy: {
             init: {
                 files: [
-                    {expand: true, cwd: 'bower_components/angular/', src: '*', dest: '<%=dirs.vendorjs%>/angular/'},
-                    {expand: true, cwd: 'bower_components/jquery/dist', src: '*', dest: '<%=dirs.vendorjs%>/jquery/'},
-                    {expand: true, cwd: 'bower_components/underscore', src: '*', dest: '<%=dirs.vendorjs%>/underscore/'},
+                    // js files
+                    {expand: true, cwd: 'bower_components/angular/',       src: '*',  dest: '<%=dirs.vendorjs%>/angular/'},
+                    {expand: true, cwd: 'bower_components/jquery/dist',    src: '*',  dest: '<%=dirs.vendorjs%>/jquery/'},
+                    {expand: true, cwd: 'bower_components/underscore',     src: '*',  dest: '<%=dirs.vendorjs%>/underscore/'},
                     {expand: true, cwd: 'bower_components/bootstrap/dist', src: '**', dest: '<%=dirs.vendorjs%>/bootstrap/'},
+                    {expand: true, cwd: 'bower_components/html5shiv/dist', src: '*',  dest: '<%=dirs.vendorjs%>/html5shiv/'},
+                    {expand: true, cwd: 'bower_components/respond/dest',   src: '*',  dest: '<%=dirs.vendorjs%>/respond/'},
+                    
+                    // d.ts files
+                    {expand: true, src: 'typings/**/*.d.ts', dest: '<%=dirs.vendorDts%>', flatten: true},
                 ]
             },
             build: {
@@ -87,7 +100,9 @@ module.exports = function(grunt) {
         clean: [
             'build/',
             '<%=dirs.appjs%>/',
-            '<%=files.devIndex.path%>/'
+            '<%=files.devIndex.path%>',
+            '<%=dirs.vendorDts%>/',
+            '<%=dirs.vendorjs%>/'
         ],
         connect: {
             server: {
@@ -108,21 +123,6 @@ module.exports = function(grunt) {
                     livereload: true
                 }
             }
-        },
-        replace: {
-            init: {
-                src: '<%=files.index%>',
-                dest: '<%=replace.init.src%>',
-                options: {
-                    patterns: [
-                        {
-                            json: {
-                                'appName': '<%=appName%>'
-                            }
-                        }
-                    ]
-                }
-            }
         }
     });
 
@@ -135,12 +135,10 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-connect');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-concat');
-    grunt.loadNpmTasks('grunt-replace');
 
     // tasks
     grunt.registerTask('init', [
-        'copy:init',
-        'replace:init'
+        'copy:init'
     ]);
     
     grunt.registerTask('compile', [
