@@ -1,3 +1,5 @@
+/// <reference path="mine/Sample.ts"/>
+
 import Sample = mine.Sample;
 
 angular

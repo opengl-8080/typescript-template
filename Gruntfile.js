@@ -14,8 +14,8 @@ module.exports = function(grunt) {
         typescript: {
             compile: {
                 src: [
-                    '<%=copy.compile.dest%>/<%=appName%>/**/*.ts',
-                    '<%=copy.compile.dest%>/app.ts',
+                    '<%=copy.compile.dest%>/**/*.ts',
+                    '!<%=copy.compile.dest%>/**/*.d.ts',
                     'typings/**/*.d.ts'
                 ],
                 dest: '<%=copy.compile.dest%>/<%=appName%>.js',
