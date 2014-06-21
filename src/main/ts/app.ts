@@ -1,5 +1,11 @@
+import Sample = mine.Sample;
+
 angular
 .module('mine', [])
 .run(['$rootScope', (scope) => {
-    scope.message = 'AngularJS with TypeScript.';
+    
+    var sample = new Sample('AngularJS with TypeScript.');
+    
+    scope.message = sample.getName();
+    
 }]);

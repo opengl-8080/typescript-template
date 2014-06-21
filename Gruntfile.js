@@ -3,13 +3,6 @@ module.exports = function(grunt) {
     grunt.initConfig({
         appName: 'mine',
         concat: {
-            compile: {
-                src: 'src/main/ts/**/*.ts',
-                dest: 'build/ts/<%=appName%>.ts',
-                filter: function(filepath) {
-                    return !(filepath.match(/.*\.d\.ts$/) || filepath.match(/.*-test\.ts$/));
-                }
-            },
             server: {
                 src: 'src/main/webapp/index.html',
                 dest: 'src/main/webapp/index-dev.html',
@@ -21,10 +14,11 @@ module.exports = function(grunt) {
         typescript: {
             compile: {
                 src: [
-                    '<%=concat.compile.dest%>',
+                    '<%=copy.compile.dest%>/<%=appName%>/**/*.ts',
+                    '<%=copy.compile.dest%>/app.ts',
                     'typings/**/*.d.ts'
                 ],
-                dest: 'build/ts/<%=appName%>.js',
+                dest: '<%=copy.compile.dest%>/<%=appName%>.js',
                 options: {
                     sourceMap: true,
                     declaration: true
@@ -33,8 +27,8 @@ module.exports = function(grunt) {
             compile_test: {
                 src: [
                     'src/main/ts/**/*-test.ts',
+                    '<%=copy.compile.dest%>/<%=appName%>.d.ts',
                     'typings/**/*.d.ts',
-                    'build/ts/<%=appName%>.d.ts'
                 ],
                 dest: 'build/ts/<%=appName%>-test.js'
             }
@@ -42,7 +36,7 @@ module.exports = function(grunt) {
         uglify: {
             minify: {
                 src: '<%=typescript.compile.dest%>',
-                dest: 'build/ts/<%=appName%>.min.js',
+                dest: '<%=copy.compile.dest%>/<%=appName%>.min.js',
                 options: {
                     sourceMapIn: '<%= typescript.compile.dest %>.map',
                     sourceMapRoot: '',
@@ -82,24 +76,23 @@ module.exports = function(grunt) {
                     {expand: true, src: 'typings/**/*.d.ts', dest: 'src/main/ts/vendor', flatten: true},
                 ]
             },
+            compile: {
+                expand: true,
+                cwd: 'src/main/ts/',
+                src: ['**/*.ts', '!**/*-test.ts'],
+                dest: 'build/scripts/'
+            },
             deploy: {
-                files: [
-                    {
-                        expand: true,
-                        cwd: 'build/ts/',
-                        src: [
-                            '<%=appName%>.ts',
-                            '<%=appName%>.min.js',
-                            '<%=appName%>.min.js.map',
-                        ],
-                        dest: 'src/main/webapp/scripts/app/'
-                    }
-                ]
+                expand: true,
+                cwd: '<%=copy.compile.dest%>',
+                src: ['**/*.ts', '**/*.js', '**/*.map', '!**/*.d.ts'],
+                dest: 'src/main/webapp/scripts/app/'
             },
             build: {
-                files: [
-                    {expand: true, cwd: 'src/main/webapp/', src: ['**', '!index-dev.html'], dest: 'build/dist/<%=appName%>/'}
-                ]
+                expand: true,
+                cwd: 'src/main/webapp/',
+                src: ['**', '!index-dev.html'],
+                dest: 'build/dist/<%=appName%>/'
             }
         },
         clean: [
@@ -147,7 +140,7 @@ module.exports = function(grunt) {
     ]);
     
     grunt.registerTask('compile', [
-        'concat:compile',
+        'copy:compile',
         'typescript:compile',
         'typescript:compile_test'
     ]);
@@ -163,12 +156,12 @@ module.exports = function(grunt) {
     ]);
     
     grunt.registerTask('deploy', [
+        'init',
         'minify',
         'copy:deploy'
     ]);
     
     grunt.registerTask('build', [
-        'init',
         'deploy',
         'copy:build'
     ]);
