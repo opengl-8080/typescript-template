@@ -115,7 +115,7 @@ module.exports = function(grunt) {
         watch: {
             server: {
                 files: ['src/main/ts/**/*.ts', 'src/main/webapp/index.html'],
-                tasks: ['minify', 'concat:server'],
+                tasks: ['deploy', 'concat:server'],
                 options: {
                     event: ['added', 'deleted', 'changed'],
                     livereload: true
