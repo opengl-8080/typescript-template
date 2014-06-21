@@ -2,31 +2,17 @@ module.exports = function(grunt) {
     // config
     grunt.initConfig({
         appName: 'mine',
-        dirs: {
-            web: 'src/main/webapp',
-            vendorjs: '<%=dirs.web%>/scripts/vendor',
-            appjs: '<%=dirs.web%>/scripts/app',
-            vendorDts: 'src/main/ts/vendor'
-        },
-        files: {
-            typescript: 'src/main/ts/**/*.ts',
-            index: '<%=dirs.web%>/index.html',
-            devIndex: {
-                path: '<%=dirs.web%>/<%=files.devIndex.name%>',
-                name: 'index-dev.html'
-            }
-        },
         concat: {
             compile: {
-                src: '<%=files.typescript%>',
-                dest: '<%=dirs.appjs%>/<%=appName%>.ts',
+                src: 'src/main/ts/**/*.ts',
+                dest: 'build/ts/<%=appName%>.ts',
                 filter: function(filepath) {
-                    return !filepath.match(/.*\.d\.ts$/);
+                    return !(filepath.match(/.*\.d\.ts$/) || filepath.match(/.*-test\.ts$/));
                 }
             },
             server: {
-                src: '<%=files.index%>',
-                dest: '<%=files.devIndex.path%>',
+                src: 'src/main/webapp/index.html',
+                dest: 'src/main/webapp/index-dev.html',
                 options: {
                     footer: '<script src="http://localhost:35729/livereload.js"></script>'
                 }
@@ -38,7 +24,7 @@ module.exports = function(grunt) {
                     '<%=concat.compile.dest%>',
                     'typings/**/*.d.ts'
                 ],
-                dest: '<%=dirs.appjs%>/<%=appName%>.js',
+                dest: 'build/ts/<%=appName%>.js',
                 options: {
                     sourceMap: true,
                     declaration: true
@@ -46,17 +32,17 @@ module.exports = function(grunt) {
             },
             compile_test: {
                 src: [
-                    'src/test/ts/**/*.ts',
+                    'src/main/ts/**/*-test.ts',
                     'typings/**/*.d.ts',
-                    '<%=dirs.appjs%>/<%=appName%>.d.ts'
+                    'build/ts/<%=appName%>.d.ts'
                 ],
-                dest: 'build/js/<%=appName%>-test.js'
+                dest: 'build/ts/<%=appName%>-test.js'
             }
         },
         uglify: {
             minify: {
                 src: '<%=typescript.compile.dest%>',
-                dest: '<%=dirs.appjs%>/<%=appName%>.min.js',
+                dest: 'build/ts/<%=appName%>.min.js',
                 options: {
                     sourceMapIn: '<%= typescript.compile.dest %>.map',
                     sourceMapRoot: '',
@@ -66,7 +52,12 @@ module.exports = function(grunt) {
         },
         jasmine: {
             test: {
-                src: '<%= uglify.minify.dest %>',
+                src: [
+                    'bower_components/angular/*.js',
+                    'bower_components/jquery/dist/*.js',
+                    'bower_components/underscore/*.js',
+                    '<%= uglify.minify.dest %>'
+                ],
                 options: {
                     specs: '<%= typescript.compile_test.dest %>',
                     keepRunner: true,
@@ -80,43 +71,57 @@ module.exports = function(grunt) {
             init: {
                 files: [
                     // js files
-                    {expand: true, cwd: 'bower_components/angular/',       src: '*',  dest: '<%=dirs.vendorjs%>/angular/'},
-                    {expand: true, cwd: 'bower_components/jquery/dist',    src: '*',  dest: '<%=dirs.vendorjs%>/jquery/'},
-                    {expand: true, cwd: 'bower_components/underscore',     src: '*',  dest: '<%=dirs.vendorjs%>/underscore/'},
-                    {expand: true, cwd: 'bower_components/bootstrap/dist', src: '**', dest: '<%=dirs.vendorjs%>/bootstrap/'},
-                    {expand: true, cwd: 'bower_components/html5shiv/dist', src: '*',  dest: '<%=dirs.vendorjs%>/html5shiv/'},
-                    {expand: true, cwd: 'bower_components/respond/dest',   src: '*',  dest: '<%=dirs.vendorjs%>/respond/'},
+                    {expand: true, cwd: 'bower_components/angular/',       src: '*',  dest: 'src/main/webapp/scripts/vendor/angular/'},
+                    {expand: true, cwd: 'bower_components/jquery/dist',    src: '*',  dest: 'src/main/webapp/scripts/vendor/jquery/'},
+                    {expand: true, cwd: 'bower_components/underscore',     src: '*',  dest: 'src/main/webapp/scripts/vendor/underscore/'},
+                    {expand: true, cwd: 'bower_components/bootstrap/dist', src: '**', dest: 'src/main/webapp/scripts/vendor/bootstrap/'},
+                    {expand: true, cwd: 'bower_components/html5shiv/dist', src: '*',  dest: 'src/main/webapp/scripts/vendor/html5shiv/'},
+                    {expand: true, cwd: 'bower_components/respond/dest',   src: '*',  dest: 'src/main/webapp/scripts/vendor/respond/'},
                     
                     // d.ts files
-                    {expand: true, src: 'typings/**/*.d.ts', dest: '<%=dirs.vendorDts%>', flatten: true},
+                    {expand: true, src: 'typings/**/*.d.ts', dest: 'src/main/ts/vendor', flatten: true},
+                ]
+            },
+            deploy: {
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'build/ts/',
+                        src: [
+                            '<%=appName%>.ts',
+                            '<%=appName%>.min.js',
+                            '<%=appName%>.min.js.map',
+                        ],
+                        dest: 'src/main/webapp/scripts/app/'
+                    }
                 ]
             },
             build: {
                 files: [
-                    {expand: true, cwd: '<%=dirs.web%>/', src: '**', dest: 'build/dist/<%=appName%>/'}
+                    {expand: true, cwd: 'src/main/webapp/', src: ['**', '!index-dev.html'], dest: 'build/dist/<%=appName%>/'}
                 ]
             }
         },
         clean: [
             'build/',
-            '<%=dirs.appjs%>/',
-            '<%=files.devIndex.path%>',
-            '<%=dirs.vendorDts%>/',
-            '<%=dirs.vendorjs%>/'
+            'src/main/webapp/scripts/app/',
+            'src/main/webapp/scripts/vendor/',
+            'src/main/webapp/index-dev.html',
+            'src/main/ts/vendor/',
         ],
         connect: {
             server: {
                 options: {
                     port: 8543,
                     hostname: 'localhost',
-                    base: '<%=dirs.web%>',
-                    open: 'http://<%=connect.server.options.hostname%>:<%=connect.server.options.port%>/<%=files.devIndex.name%>'
+                    base: 'src/main/webapp',
+                    open: 'http://<%=connect.server.options.hostname%>:<%=connect.server.options.port%>/index-dev.html'
                 }
             }
         },
         watch: {
             server: {
-                files: ['<%=files.typescript%>', '<%=files.index%>'],
+                files: ['src/main/ts/**/*.ts', 'src/main/webapp/index.html'],
                 tasks: ['minify', 'concat:server'],
                 options: {
                     event: ['added', 'deleted', 'changed'],
@@ -157,14 +162,19 @@ module.exports = function(grunt) {
         'jasmine:test'
     ]);
     
+    grunt.registerTask('deploy', [
+        'minify',
+        'copy:deploy'
+    ]);
+    
     grunt.registerTask('build', [
         'init',
-        'test',
+        'deploy',
         'copy:build'
     ]);
     
     grunt.registerTask('server', [
-        'minify',
+        'deploy',
         'concat:server',
         'connect:server',
         'watch:server'
